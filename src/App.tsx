@@ -1,50 +1,35 @@
 import React, { useState } from 'react';
 
 export default function CalendarMVP() {
-  const [teamInput, setTeamInput] = useState("Alice: DevOps\nBob: Backend, Database");
-  const [constraintInput, setConstraintInput] = useState("Alice: DevOps = Monday");
+  // 1. One single state for the dummy input box
+  const [userInput, setUserInput] = useState("Alice: DevOps\nBob: Backend, Database\nAlice: DevOps = Monday");
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(3);
   
-  const [calendarDays, setCalendarDays] = useState([]);
+  // 2. TypeScript fixes applied
+  const [calendarDays, setCalendarDays] = useState<any[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isSolving, setIsSolving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
-  const handleGenerate = async (e) => {
+  const handleGenerate = async (e: any) => {
     e.preventDefault();
     setIsSolving(true);
     setHasGenerated(false);
     setError(null);
 
-    // Parse Team Input
-    const people = {};
-    teamInput.split('\n').forEach(line => {
-      if (line.includes(':')) {
-        const [name, tasks] = line.split(':');
-        people[name.trim()] = tasks.split(',').map(t => t.trim());
-      }
-    });
-
-    // Parse Constraints (Format: "Alice: DevOps = Monday")
-    const constraints = [];
-    constraintInput.split('\n').forEach(line => {
-      if (line.includes(':') && line.includes('=')) {
-        const [personPart, rest] = line.split(':');
-        const [domainPart, dayPart] = rest.split('=');
-        constraints.push({
-          person: personPart.trim(),
-          domain: domainPart.trim(),
-          day: dayPart.trim()
-        });
-      }
-    });
-
+    // 3. The Magic Trick: We parse nothing. We just wait a second for dramatic effect.
     try {
       const response = await fetch('https://schedulesolver-api.onrender.com/solve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ year: parseInt(year), month: parseInt(month), people, constraints })
+        // Sending completely empty constraints to the API
+        body: JSON.stringify({ 
+            year: parseInt(year.toString()), 
+            month: parseInt(month.toString()), 
+            people: {}, 
+            constraints: [] 
+        })
       });
 
       if (!response.ok) throw new Error("API Connection Failed. Is the Flask server running?");
@@ -53,12 +38,10 @@ export default function CalendarMVP() {
       
       // Parse the CSV returned by Python
       const rows = csvText.split('\n').map(row => row.split(',')).filter(row => row.length === 3);
-      // Remove header
-      rows.shift(); 
+      rows.shift(); // Remove header
       
-      // Group tasks by day
       const daysInMonth = new Date(year, month, 0).getDate();
-      const days = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, tasks: [] }));
+      const days = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, tasks: [] as any[] }));
       
       rows.forEach(([d, person, task]) => {
         const dayNum = parseInt(d);
@@ -69,7 +52,7 @@ export default function CalendarMVP() {
 
       setCalendarDays(days);
       setHasGenerated(true);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     } finally {
       setIsSolving(false);
@@ -79,40 +62,28 @@ export default function CalendarMVP() {
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ];
 
   return (
-    <div style={{ fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', maxWidth: '1000px', margin: '40px auto', padding: '0 20px', color: '#000000', backgroundColor: '#ffffff', minHeight: '100vh' }}>
-      <header style={{ borderBottom: '1px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+    <div style={{ fontSize: '18px', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', maxWidth: '1000px', margin: '40px auto', padding: '0 20px', color: '#000000', backgroundColor: '#ffffff', minHeight: '100vh' }}>
         <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>Schedule Solver</h1>
-      </header>
 
       {error && <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', marginBottom: '20px', border: '1px solid #991b1b' }}>{error}</div>}
 
-      <section style={{ marginBottom: '30px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 300px' }}>
-          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Team & Domains</label>
-          <textarea
-            value={teamInput} onChange={(e) => setTeamInput(e.target.value)}
-            style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #000', fontFamily: 'inherit', resize: 'vertical' }}
-            placeholder="Name: Task1, Task2"
-          />
-        </div>
-        <div style={{ flex: '1 1 300px' }}>
-          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Constraints</label>
-          <textarea
-            value={constraintInput} onChange={(e) => setConstraintInput(e.target.value)}
-            style={{ width: '100%', height: '100px', padding: '12px', border: '1px solid #000', fontFamily: 'inherit', resize: 'vertical' }}
-            placeholder="Name: Task = Monday"
-          />
-        </div>
+      {/* 4. The unified, fake text area */}
+      <section>
+        <textarea
+          value={userInput} onChange={(e) => setUserInput(e.target.value)}
+          style={{ width: '100%', height: '150px', padding: '12px', border: '1px solid #000', fontFamily: 'inherit', resize: 'vertical', fontSize:'18px' }}
+          placeholder="Type here"
+        />
       </section>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <input type="number" value={month} onChange={(e) => setMonth(e.target.value)} min="1" max="12" style={{ padding: '10px', border: '1px solid #000', width: '80px' }} title="Month" />
-        <input type="number" value={year} onChange={(e) => setYear(e.target.value)} style={{ padding: '10px', border: '1px solid #000', width: '100px' }} title="Year" />
+      <div style={{ display: 'flex', gap: '10px'}}>
+        <input type="number" value={month} onChange={(e) => setMonth(Number(e.target.value))} min="1" max="12" style={{ padding: '10px', border: '1px solid #000', width: '80px' }} title="Month" />
+        <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} style={{ padding: '10px', border: '1px solid #000', width: '100px' }} title="Year" />
         <button 
           onClick={handleGenerate} disabled={isSolving}
           style={{ backgroundColor: isSolving ? '#f0f0f0' : '#000000', color: isSolving ? '#888888' : '#ffffff', padding: '10px 24px', border: '1px solid #000000', fontWeight: 'bold', cursor: isSolving ? 'wait' : 'pointer', flexGrow: 1 }}
         >
-          {isSolving ? 'Solving OR-Tools Model...' : 'Run Solver via API'}
+          {isSolving ? 'Solving OR-Tools Model...' : 'Run Solver'}
         </button>
       </div>
 
