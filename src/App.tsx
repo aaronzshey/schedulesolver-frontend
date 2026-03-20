@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 export default function CalendarMVP() {
   // 1. One single state for the dummy input box
-  const [userInput, setUserInput] = useState("Alice: DevOps\nBob: Backend, Database\nAlice: DevOps = Monday");
+  const [userInput, setUserInput] = useState("Alice: Clinic\nBob: Hospital, Office\nAlice: Clinic = Monday");
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(3);
   
